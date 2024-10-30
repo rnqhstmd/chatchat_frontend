@@ -1,4 +1,3 @@
-// ChatRoomPage.js
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { leaveRoom, searchUserByEmail, inviteUserToRoom } from '../api/roomService';
@@ -9,7 +8,7 @@ import { Stomp } from '@stomp/stompjs';
 const ChatRoomPage = () => {
     const { roomId } = useParams();
     const [messages, setMessages] = useState([]);
-    const [messageInput, setMessageInput] = useState(''); // 메시지 입력 상태
+    const [messageInput, setMessageInput] = useState('');
     const [showInvite, setShowInvite] = useState(false);
     const [inviteEmail, setInviteEmail] = useState('');
     const [users, setUsers] = useState([]);
@@ -26,9 +25,13 @@ const ChatRoomPage = () => {
     const connectWebSocket = () => {
         const socket = new SockJS('http://localhost:8080/ws');
         stompClient.current = Stomp.over(socket);
-        stompClient.current.connect({}, () => {
-            stompClient.current.subscribe(`/topic/room.${roomId}`, onMessageReceived);
-        });
+        stompClient.current.connect(
+            {},
+            () => {
+                stompClient.current.subscribe(`/topic/room.${roomId}`, onMessageReceived);
+            },
+            onError
+        );
     };
 
     const disconnectWebSocket = () => {
@@ -38,13 +41,6 @@ const ChatRoomPage = () => {
         }
     };
 
-    useEffect(() => {
-        connectWebSocket();
-        return () => {
-            disconnectWebSocket();
-        };
-    }, [roomId]); // roomId가 변경되면 연결을 재설정합니다.
-
     const onMessageReceived = (payload) => {
         const message = JSON.parse(payload.body);
         setMessages((prev) => [...prev, message]);
@@ -52,8 +48,15 @@ const ChatRoomPage = () => {
 
     const sendMessage = () => {
         if (messageInput.trim() && stompClient.current.connected) {
-            stompClient.current.send(`/app/chat.sendMessage`, {}, JSON.stringify({ roomId, message: messageInput }));
-            setMessageInput(''); // 입력 필드 초기화
+            stompClient.current.send(
+                `/app/chat.sendMessage`, // Ensure you have '/app' prefix if configured in Spring back-end
+                {},
+                JSON.stringify({
+                    roomId,
+                    message: messageInput,
+                })
+            );
+            setMessageInput('');
         }
     };
 
@@ -71,8 +74,7 @@ const ChatRoomPage = () => {
     const handleSearchUser = async () => {
         try {
             const response = await searchUserByEmail(inviteEmail);
-            setUsers(response.data); // 검색된 사용자 목록 저장
-            console.log(response.data);
+            setUsers(response.data);
         } catch (error) {
             console.error('Search user error:', error);
         }
@@ -80,13 +82,16 @@ const ChatRoomPage = () => {
 
     const handleInviteUser = async (username) => {
         try {
-            console.log(username);
             await inviteUserToRoom(roomId, username);
             alert(`User ${username} invited successfully!`);
             toggleInvite();
         } catch (error) {
             console.error('Invite user error:', error);
         }
+    };
+
+    const onError = (error) => {
+        console.error('WebSocket Error:', error);
     };
 
     return (
