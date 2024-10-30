@@ -18,16 +18,16 @@ export const searchUserByEmail = (email) => {
     return axiosInstance.get(`/users/search?email=${email}`);
 };
 
-export const inviteUserToRoom = (roomId, username) => {
-    return axiosInstance.post(`/rooms/${roomId}/invite`, { roomId, username });
-};
-
 export const sendInvite = (roomId, email) => {
     return axiosInstance.post(`/api/rooms/${roomId}/invite`, { roomId, username: email });
 };
 
+export const inviteUserToRoom = (roomId, username) => {
+    return axiosInstance.post(`/rooms/${roomId}/invite`, { roomId, username });
+};
+
 export const sendLeave = (roomId) => {
-    return axiosInstance.post(`/api/rooms/${roomId}/leave`);
+    return axiosInstance.delete(`/rooms/${roomId}/leave`);
 };
 
 // 채팅방 메시지 로드 함수 추가
